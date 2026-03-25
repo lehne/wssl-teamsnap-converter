@@ -331,7 +331,6 @@
 
     // ── Build TeamSnap CSV ────────────────────────────────────────────────────
     const TEAMSNAP_HEADER = [
-      'Delete this column before saving for import!',
       'Date', 'Time', 'Duration (HH:MM)', 'Arrival Time (Minutes)',
       'Name', 'Opponent Name', 'Opponent Contact Name',
       'Opponent Contact Phone Number', 'Opponent Contact E-mail Address',
@@ -373,7 +372,6 @@
         const location = row[IDX.location].trim();
 
         const dataRow = [
-          '',            // guide column (delete before import)
           date,
           time,
           duration,
