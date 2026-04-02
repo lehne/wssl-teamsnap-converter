@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WSSL → TeamSnap Converter</title>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.full.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -231,12 +232,12 @@
   <!-- Step 1: Upload -->
   <div class="card">
     <div class="step-label">Step 1</div>
-    <h2>Upload WSSL Schedule CSV</h2>
+    <h2>Upload WSSL Schedule</h2>
     <div class="upload-area" id="upload-area">
-      <input type="file" id="csv-file" accept=".csv,text/csv" />
+      <input type="file" id="csv-file" accept=".csv,text/csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
       <div class="upload-icon">📂</div>
       <div>Click to choose a file, or drag &amp; drop here</div>
-      <div class="hint">Accepts .csv files exported from WSSL</div>
+      <div class="hint">Accepts .csv or .xlsx files exported from WSSL</div>
     </div>
     <div id="file-name"></div>
   </div>
@@ -438,17 +439,27 @@
 
     function loadFile(file) {
       if (!file) return;
+      const isXlsx = file.name.toLowerCase().endsWith('.xlsx') ||
+                     file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
-          const rows = parseCSV(e.target.result);
-          if (rows.length < 2) throw new Error('CSV appears to be empty or invalid.');
+          let rows;
+          if (isXlsx) {
+            const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+            if (!workbook.SheetNames.length) throw new Error('XLSX file contains no sheets.');
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+          } else {
+            rows = parseCSV(e.target.result);
+          }
+          if (rows.length < 2) throw new Error('File appears to be empty or invalid.');
 
           // Detect header row by looking for known WSSL column names; skip it if found
-          const firstRow = rows[0].map(c => c.trim().toLowerCase());
+          const firstRow = rows[0].map(c => String(c).trim().toLowerCase());
           const isHeader = ['match #', 'home team', 'away team', 'date', 'location'].some(h => firstRow.includes(h));
           const startIdx = isHeader ? 1 : 0;
-          parsedRows = rows.slice(startIdx);
+          parsedRows = rows.slice(startIdx).map(r => r.map(c => String(c)));
 
           const teams = extractTeams(parsedRows);
           if (teams.length === 0) throw new Error('No team names found. Is this the right file?');
@@ -470,7 +481,11 @@
           showError(err.message);
         }
       };
-      reader.readAsText(file);
+      if (isXlsx) {
+        reader.readAsArrayBuffer(file);
+      } else {
+        reader.readAsText(file);
+      }
     }
 
     fileInput.addEventListener('change', (e) => loadFile(e.target.files[0]));
