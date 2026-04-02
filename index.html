@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WSSL → TeamSnap Converter</title>
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.full.min.js"></script>
+  <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js" integrity="sha384-OLBgp1GsljhM2TJ+sbHjaiH9txEUvgdDTAzHv2P24donTt6/529l+9Ua0vFImLlb" crossorigin="anonymous"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -200,9 +200,9 @@
     }
 
     /* Error */
-    #error-msg {
+    #error-msg, #file-error {
       display: none;
-      margin-top: 1rem;
+      margin-top: 0.75rem;
       padding: 0.9rem 1rem;
       border-radius: 8px;
       background: #fff5f5;
@@ -210,6 +210,8 @@
       font-size: 0.9rem;
       color: #c53030;
     }
+
+    #error-msg { margin-top: 1rem; }
 
     /* Hidden */
     .hidden { display: none !important; }
@@ -240,6 +242,7 @@
       <div class="hint">Accepts .csv or .xlsx files exported from WSSL</div>
     </div>
     <div id="file-name"></div>
+    <div id="file-error"></div>
   </div>
 
   <!-- Step 2: Pick team + settings -->
@@ -426,6 +429,7 @@
     const fileInput   = document.getElementById('csv-file');
     const uploadArea  = document.getElementById('upload-area');
     const fileNameEl  = document.getElementById('file-name');
+    const fileErrorEl = document.getElementById('file-error');
     const step2Card   = document.getElementById('step2-card');
     const teamSelect  = document.getElementById('team-select');
     const convertBtn  = document.getElementById('convert-btn');
@@ -435,6 +439,11 @@
     function showError(msg) {
       errorEl.textContent = msg;
       errorEl.style.display = msg ? 'block' : 'none';
+    }
+
+    function showFileError(msg) {
+      fileErrorEl.textContent = msg;
+      fileErrorEl.style.display = msg ? 'block' : 'none';
     }
 
     function loadFile(file) {
@@ -476,9 +485,10 @@
           fileNameEl.textContent = `✅ Loaded: ${file.name} (${parsedRows.length} match rows, ${teams.length} teams)`;
           step2Card.classList.remove('hidden');
           summaryEl.style.display = 'none';
+          showFileError('');
           showError('');
         } catch (err) {
-          showError(err.message);
+          showFileError(err.message);
         }
       };
       if (isXlsx) {
